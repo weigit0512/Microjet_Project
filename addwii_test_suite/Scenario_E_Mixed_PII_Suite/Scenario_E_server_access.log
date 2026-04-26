@@ -1,0 +1,3 @@
+2026-04-15 09:12:33 INFO User_A logged in
+2026-04-15 14:22:11 INFO User_B downloaded 15 records
+2026-04-15 23:47:05 WARN User_X downloaded 1284 records from /api/customers [OUT_OF_OFFICE_HOURS]

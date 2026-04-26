@@ -1,0 +1,6 @@
+Flask
+gunicorn
+python-dotenv
+# 如果你有用到讀取 Word/Excel 的套件，請務必加上
+python-docx
+# 不需要加上 webbrowser 或 threading，那是地端 exe 用的

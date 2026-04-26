@@ -1,0 +1,50 @@
+{
+  "company_name": "Microjet",
+  "products": [
+    {
+      "model": "MJ-3200",
+      "category": "Inkjet Printer",
+      "warranty_period_years": 2,
+      "common_errors": [
+        {
+          "code": "E-043",
+          "description": "墨水匣晶片辨識失敗",
+          "cause": "常見於韌體過舊",
+          "solution": "請先更新韌體至 v2.14 以上。"
+        },
+        {
+          "code": "E-044",
+          "description": "進紙軸卡紙",
+          "cause": "進紙匣內有紙屑或異物堆積",
+          "solution": "請關閉電源，打開後蓋清理進紙匣，確認無碎紙殘留。"
+        },
+        {
+          "code": "E-045",
+          "description": "墨水耗盡",
+          "cause": "感測器偵測墨水存量低於安全值",
+          "solution": "請更換 Microjet 原廠對應型號之墨水匣。"
+        },
+        {
+          "code": "E-046",
+          "description": "Wi-Fi 連線逾時",
+          "cause": "路由器設定變更或訊號微弱",
+          "solution": "請長按 Wi-Fi 鍵 5 秒重置網路，並使用 APP 重新配對。"
+        },
+        {
+          "code": "E-047",
+          "description": "噴頭阻塞",
+          "cause": "設備長時間未使用導致墨水乾涸",
+          "solution": "請從控制面板執行「深度清潔噴頭」程序 1~2 次。"
+        }
+      ],
+      "specs": {
+        "ink_type": "Original Pigment Ink",
+        "connection": "Wi-Fi, USB"
+      }
+    }
+  ],
+  "global_rules": {
+    "escalation_keywords": ["冒煙", "消保會", "公開", "告狀", "投訴", "退貨", "太爛", "賠償", "媒體", "爆"],
+    "categories": ["退貨", "維修", "品質申訴", "相容性問題", "帳務", "其他"]
+  }
+}

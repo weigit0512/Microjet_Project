@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<title>Microjet 企業級 Agent 工作站</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+  :root { --bg-0: #0a0e14; --bg-1: #111821; --bg-2: #1a2332; --bg-3: #243244; --border: #2a3648; --text-0: #e6edf3; --text-1: #9aa8ba; --accent: #00e5ff; --danger: #ef4444; --warn: #f59e0b; --success: #10b981; }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: "Consolas", monospace; }
+  body { height: 100vh; background: var(--bg-0); color: var(--text-0); display: flex; flex-direction: column; overflow: hidden; }
+  header { padding: 15px 20px; background: var(--bg-1); border-bottom: 1px solid var(--border); font-weight: bold; color: var(--accent); display: flex; justify-content: space-between; align-items: center;}
+  
+  .app-container { display: flex; flex: 1; overflow: hidden; }
+  .audit-panel { width: 30%; background: var(--bg-1); border-right: 1px solid var(--border); padding: 20px; overflow-y: auto; }
+  .chat-panel { width: 70%; display: flex; flex-direction: column; background: var(--bg-0); }
+  .messages { flex: 1; padding: 20px; overflow-y: auto; scroll-behavior: smooth; }
+  
+  .msg { margin-bottom: 15px; }
+  .msg.user { text-align: right; }
+  .msg.user span { background: #005588; color: white; padding: 10px 14px; border-radius: 8px; display: inline-block; font-size: 13px; max-width: 80%; text-align: left;}
+  .msg.bot span.bubble { background: var(--bg-2); color: white; padding: 12px 16px; border-radius: 8px; display: inline-block; border: 1px solid var(--border); font-size: 13px; line-height: 1.6; max-width: 85%;}
+  .meta-info { font-size: 10px; color: var(--text-1); margin-top: 6px; }
+
+  /* 場景切換 Tabs */
+  .controls { background: var(--bg-1); padding: 15px 20px; border-top: 1px solid var(--border); }
+  .tabs { display: flex; gap: 8px; margin-bottom: 15px; }
+  .tab-btn { flex: 1; padding: 10px 5px; background: var(--bg-2); color: var(--text-1); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; font-size: 12px; text-align: center;}
+  .tab-btn.active { background: rgba(0, 229, 255, 0.15); border-color: var(--accent); color: var(--accent); box-shadow: 0 0 10px rgba(0,229,255,0.2); }
+  .tab-btn:hover:not(.active) { background: var(--bg-3); }
+
+  /* Quick Test Chips */
+  .quick-chips-wrapper { min-height: 35px; margin-bottom: 15px; }
+  .quick-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip { padding: 6px 12px; background: var(--bg-3); border: 1px solid var(--border); border-radius: 15px; font-size: 11px; cursor: pointer; color: var(--text-0); transition: 0.2s; display: none; }
+  .chip.show { display: block; }
+  .chip:hover { border-color: var(--accent); color: var(--accent); background: rgba(0, 229, 255, 0.1); }
+
+  /* 檔案上傳 UI */
+  .input-row { display: flex; gap: 10px; align-items: center;}
+  .file-btn { background: var(--bg-3); color: var(--text-0); border: 1px solid var(--border); padding: 12px 15px; border-radius: 6px; cursor: pointer; font-size: 13px; display: none; transition: 0.2s;}
+  .file-btn:hover { border-color: var(--warn); color: var(--warn); box-shadow: 0 0 8px rgba(245,158,11,0.2);}
+  .file-name { font-size: 11px; color: var(--warn); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: bold;}
+  
+  input[type="text"] { flex: 1; padding: 12px; background: var(--bg-2); border: 1px solid var(--border); color: #fff; border-radius: 6px; outline: none; font-size: 14px;}
+  input[type="text"]:focus { border-color: var(--accent); }
+  .send-btn { padding: 12px 25px; background: var(--accent); color: #000; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;}
+  .send-btn:hover { box-shadow: 0 0 10px var(--accent); }
+
+  .dl-btn { background: #005588; color: #fff; border: 1px solid #00aaff; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold; margin-top: 10px; display: inline-block;}
+  .dl-btn:hover { background: #00aaff; color: #000; }
+
+  /* 節點與警告框 */
+  .node { border-left: 3px solid var(--accent); background: var(--bg-2); padding: 10px; margin-bottom: 10px; font-size: 11px; border-radius: 0 4px 4px 0;}
+  .node-danger { border-left-color: var(--danger); }
+  .alert-box { background: rgba(239, 68, 68, 0.15); border: 1px solid var(--danger); padding: 12px; color: #ffb4b4; margin-bottom: 10px; border-radius: 6px; animation: blink 1.5s infinite; font-size: 13px; font-weight: bold;}
+  .hil-box { background: rgba(245, 158, 11, 0.15); border: 1px solid var(--warn); padding: 12px; color: #e0c98a; margin-top: 10px; border-radius: 6px; font-size: 13px;}
+  .hil-btn { background: var(--success); color: #000; font-weight: bold; font-size: 12px; padding: 6px 12px; margin-top: 10px; border: none; border-radius: 4px; cursor: pointer;}
+  @keyframes blink { 50% { opacity: 0.6; } }
+</style>
+</head>
+<body>
+
+<header>
+  <span>Microjet 企業級 Agent 工作站 // REAL-FILE PROCESSING MODE</span>
+  <span style="font-size: 11px; color: var(--text-1); border: 1px solid var(--text-1); padding: 3px 8px; border-radius: 10px;" id="currentApiDisplay">READY</span>
+</header>
+
+<div class="app-container">
+  <div class="audit-panel" id="auditLog">
+    <div style="color: var(--accent); font-size: 12px; margin-bottom: 15px; font-weight: bold; letter-spacing: 1px;">▶ AGENT 執行日誌 (AUDIT TRAIL)</div>
+  </div>
+
+  <div class="chat-panel">
+    <div class="messages" id="messages"></div>
+    
+    <div class="controls">
+      <div class="tabs">
+        <button class="tab-btn" data-scenario="A" data-api="/api/tech-support">A. 技術客服</button>
+        <button class="tab-btn" data-scenario="B" data-api="/api/complaint-routing">B. 客訴分類</button>
+        <button class="tab-btn" data-scenario="C" data-api="/api/proposal-gen">C. 提案生成</button>
+        <button class="tab-btn" data-scenario="D" data-api="/api/feedback-analysis">D. 回饋分析(CSV)</button>
+        <button class="tab-btn" data-scenario="E" data-api="/api/security-audit">E. 資安合規</button>
+      </div>
+
+      <div class="quick-chips-wrapper">
+        <div class="quick-chips" id="quickChips">
+          <div class="chip" data-group="A">我的 MJ-3200 顯示 E-043 錯誤，剛換了墨水匣，還在保固期內嗎？</div>
+          <div class="chip" data-group="B">我上個月買的 MJ-3200 列印品質變差，你們再不處理我要上網公開！</div>
+          <div class="chip" data-group="C">輸入：名稱=經銷商、地區=新竹、歷史紀錄=近12個月、目標=展店、選定型號=MJ-3200</div>
+          <div class="chip" data-group="D" style="border-color: var(--warn);">[分析任務] 請點擊下方 📎 選擇準備好的 CSV 評論檔進行即時分析</div>
+          <div class="chip" data-group="E" style="border-color: var(--warn);">[掃描任務] 請點擊下方 📎 選擇您的測試檔 (docx, xlsx, log) 進行稽核</div>
+        </div>
+      </div>
+
+      <div class="input-row">
+        <input type="file" id="fileUpload" style="display:none;" multiple>
+        <button class="file-btn" id="fileBtn" onclick="document.getElementById('fileUpload').click()">📎 選擇真實檔案</button>
+        <div class="file-name" id="fileNameDisplay"></div>
+
+        <input type="text" id="queryInput" placeholder="系統就緒，請點擊上方場景指令或選擇檔案..." autocomplete="off"/>
+        <button class="send-btn" onclick="sendQuery()">發送 (SEND)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentApiPath = "";
+  const tabs = document.querySelectorAll(".tab-btn");
+  const chips = document.querySelectorAll(".chip");
+  const input = document.getElementById("queryInput");
+  const msgs = document.getElementById("messages");
+  const audit = document.getElementById("auditLog");
+  const apiDisplay = document.getElementById("currentApiDisplay");
+  
+  const fileInput = document.getElementById("fileUpload");
+  const fileBtn = document.getElementById("fileBtn");
+  const fileNameDisplay = document.getElementById("fileNameDisplay");
+
+  // 監聽前端檔案選擇
+  fileInput.addEventListener("change", function() {
+    if (this.files && this.files.length > 0) {
+      let names = Array.from(this.files).map(f => f.name).join(", ");
+      fileNameDisplay.innerText = names;
+    } else {
+      fileNameDisplay.innerText = "";
+    }
+  });
+
+  // UI 場景連動控制
+  function selectTab(btn) {
+    tabs.forEach(t => t.classList.remove("active"));
+    btn.classList.add("active");
+    currentApiPath = btn.getAttribute("data-api");
+    const scenarioId = btn.getAttribute("data-scenario");
+    apiDisplay.innerText = `ENDPOINT: ${currentApiPath}`;
+
+    // 清空舊狀態
+    fileInput.value = "";
+    fileNameDisplay.innerText = "";
+
+    // D, E 場景才顯示上傳按鈕
+    if (scenarioId === "D" || scenarioId === "E") {
+      fileBtn.style.display = "block";
+    } else {
+      fileBtn.style.display = "none";
+    }
+
+    let firstVisibleChip = null;
+    chips.forEach(chip => {
+      if (chip.getAttribute("data-group") === scenarioId) {
+        chip.classList.add("show");
+        if (!firstVisibleChip) firstVisibleChip = chip;
+      } else {
+        chip.classList.remove("show");
+      }
+    });
+
+    if (firstVisibleChip) input.value = firstVisibleChip.innerText;
+  }
+
+  tabs.forEach(btn => btn.addEventListener("click", () => selectTab(btn)));
+  chips.forEach(chip => chip.addEventListener("click", () => { input.value = chip.innerText; }));
+  if (tabs.length > 0) selectTab(tabs[0]);
+
+  // 📄 [場景 C] 真實 PDF 渲染器 (排版精美)
+  function downloadRealPDF() {
+    const element = document.createElement('div');
+    element.innerHTML = `
+      <div style="padding: 40px; font-family: sans-serif; color: #333; line-height: 1.6;">
+          <h1 style="color: #005588; border-bottom: 2px solid #005588; padding-bottom: 10px;">Microjet 企業級 B2B 提案建議書</h1>
+          <p style="text-align: right; color: gray;">產出日期：2026/04</p>
+          
+          <h3 style="color: #d25f00;">1. 摘要</h3>
+          <p>針對貴司展店需求，提供兼具穩定性與低成本之高階噴墨列印解決方案，確保營運效率最大化。</p>
+          <h3 style="color: #d25f00;">2. 合作回顧</h3>
+          <p>感謝貴司信任，經系統統計，近 12 個月歷史採購量為：<b>共計 450 台設備</b>，設備妥善率達 98%。</p>
+          <h3 style="color: #d25f00;">3. 市場分析</h3>
+          <p>新竹地區展店密集，商用印表機需求大增，貴司目前市佔率穩居前三。</p>
+          <h3 style="color: #d25f00;">4. 新品推薦</h3>
+          <p>主推旗艦型號：<b>MJ-3200</b>。具備抗卡紙進紙軸設計，並搭載大容量原廠顏料墨水。</p>
+          <h3 style="color: #d25f00;">5. 採購方案</h3>
+          <p>針對單次採購 50 台以上，提供階梯式優惠報價，並額外搭贈 20% 備品。</p>
+          <h3 style="color: #d25f00;">6. 通路活動建議</h3>
+          <p>配合新竹大遠百展店檔期，提供大型 POSM 落地陳列架。</p>
+          <h3 style="color: #d25f00;">7. 雙方承諾</h3>
+          <p>Microjet 承諾下單後 48 小時內供貨；若達成年度 KPI，將額外提撥行銷贊助金。</p>
+          <h3 style="color: #d25f00;">8. 附件</h3>
+          <p>詳細產品硬體型錄、SLA (Service Level Agreement) 請參閱附錄。</p>
+          <div style="margin-top: 40px; font-size: 11px; color: gray; text-align: center; border-top:1px solid #eee; padding-top:10px;">
+              Generated by Microjet AI Agent
+          </div>
+      </div>
+    `;
+
+    const opt = {
+      margin:       0,
+      filename:     'Microjet_B2B_Proposal.pdf',
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2 },
+      jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+    };
+    html2pdf().set(opt).from(element).save();
+  }
+
+  // 🚀 發送請求 (核心：切換 JSON 與 FormData)
+  async function sendQuery() {
+    const query = input.value.trim();
+    const files = fileInput.files;
+    if (!query && files.length === 0) return;
+    
+    // UI 反饋
+    let userMsg = query;
+    if (files.length > 0) userMsg += `<br><span style="color:var(--warn); font-size:12px; font-weight:bold;">📎 已夾帶實體檔案：${fileNameDisplay.innerText}</span>`;
+    msgs.innerHTML += `<div class="msg user"><span>${userMsg}</span></div>`;
+    input.value = ""; 
+
+    try {
+      let fetchOptions = { method: "POST" };
+      
+      // 判斷是否包含檔案：有檔案用 FormData，沒檔案用 JSON
+      if (files.length > 0) {
+        const formData = new FormData();
+        formData.append("question", query);
+        for(let i=0; i<files.length; i++) {
+          formData.append("file", files[i]);
+        }
+        fetchOptions.body = formData; // 瀏覽器會自動設定 Content-Type: multipart/form-data
+      } else {
+        fetchOptions.headers = { "Content-Type": "application/json" };
+        fetchOptions.body = JSON.stringify({ question: query });
+      }
+
+      const res = await fetch(currentApiPath, fetchOptions);
+      const data = await res.json();
+
+      let botHtml = "";
+      if (data.urgency === "Security Risk") {
+        botHtml += `<div class="alert-box">⚠ SECURITY RISK / PII DETECTED<br>系統警報：已攔截包含敏感個資的行為。</div>`;
+      }
+      
+      let hilHtml = data.requires_approval ? `<div class="hil-box" id="hil-${data.audit_id}">⚠ 觸發人工審核閘 (HIL)<br><button class="hil-btn" onclick="approve('${data.audit_id}')">✓ 核准執行 / 發送</button></div>` : "";
+      
+      botHtml += `<span class="bubble">${data.answer}</span>${hilHtml}<div class="meta-info">API: ${currentApiPath} | 耗時: ${data.process_time} | ID: ${data.audit_id}</div>`;
+      msgs.innerHTML += `<div class="msg bot">${botHtml}</div>`;
+      msgs.scrollTop = msgs.scrollHeight;
+
+      // 渲染左側 Audit 日誌
+      data.nodes.forEach(n => {
+        const isDanger = n.status === "攔截" || n.status === "高風險" || n.status === "警報";
+        audit.innerHTML += `<div class="node ${isDanger ? 'node-danger' : ''}"><b>STEP ${n.id}: ${n.name}</b><br><span style="color:var(--text-1)">${n.status} - ${n.detail}</span></div>`;
+      });
+      audit.scrollTop = audit.scrollHeight;
+
+    } catch (error) {
+      msgs.innerHTML += `<div class="msg bot"><span class="bubble" style="border-color:var(--danger); color:#ffb4b4;">連線失敗，請確認伺服器是否運行中。</span></div>`;
+    }
+  }
+
+  input.addEventListener("keypress", function(event) { if (event.key === "Enter") sendQuery(); });
+  async function approve(id) {
+    await fetch('/approve', { method: 'POST' });
+    document.getElementById(`hil-${id}`).innerHTML = "<span style='color:var(--success); font-weight:bold;'>✅ 已由主管核准，進入後續流程</span>";
+  }
+</script>
+</body>
+</html>
